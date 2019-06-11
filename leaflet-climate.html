@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Warm climate map</title>
+    <meta charset="utf-8"/>
+    <!--title>GeoJSON with Leaflet + D3 using L.D3SvgOverlay</title-->
+
+    <style type="text/css">
+        html { height: 100% }
+        body { height: 100%; margin: 0; padding: 0 }
+        #map-canvas { height: 100% }
+    </style>
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.css'
+    	rel='stylesheet' type='text/css'/>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript" >
+       (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+       m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+       (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
+
+       ym(50557972, "init", {
+            id:50557972,
+            clickmap:true,
+            trackLinks:true,
+            accurateTrackBounce:true,
+            webvisor:true
+       });
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/50557972" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <!-- /Yandex.Metrika counter -->
+    <style type="text/css" media="screen">
+
+        .legend {
+            line-height: 18px;
+            color: #555;
+            background-color: white;
+            padding: 5px;
+            opacity: 0.8;
+        }
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+  <div id="map-canvas"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.9/d3.min.js"></script>
+<script src="L.D3SvgOverlay.min.js"></script>
+<script>
+
+var map = L.map("map-canvas", {center: [46.81509864599243, 8.3221435546875], zoom: 2});
+var tiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
+});
+tiles.addTo(map);
+
+var countries = [];
+var countriesOverlay = L.d3SvgOverlay(function(sel, proj) {
+
+  var upd = sel.selectAll('path').data(countries);
+  upd.enter()
+    .append('path')
+    .attr('d', proj.pathFromGeojson)
+    //.attr('stroke', 'black')
+    .attr('fill', function(d){
+        if (d.properties.climates_f && d.properties.climates_f.startsWith("Cs"))
+          return("orange");
+        else if (d.properties.climates_f && d.properties.climates_f.startsWith("C"))
+            return("green");
+        else
+          return("#ffffff")})
+    .attr('fill-opacity', '0.5');
+  //upd.attr('stroke-width', 1 / proj.scale);
+});
+
+var legend = L.control({position: 'bottomright'});
+legend.onAdd = function (map) {
+
+      var div = L.DomUtil.create('div', 'info legend'),
+          grades = [0, 10, 20, 50, 100, 200, 500, 1000],
+          labels = [];
+
+      // loop through our density intervals and generate a label with a colored square for each interval
+      //for (var i = 0; i < grades.length; i++) {
+      //    div.innerHTML +=
+      //        '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+      //        grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+      //}
+      div.innerHTML =
+          'Climates (by <a target="_blank" href="https://en.wikipedia.org/wiki/Köppen_climate_classification">Köppen classification</a>):<br>' +
+          '<i style="background:orange"></i>Mediterranean climate (Cs*)<br/>' +
+          '<i style="background:green"></i>Warm climate (C*)<br/>'+
+          '<br/>'+
+          'Climate data source:<br/>'+
+          'http://koeppen-geiger.vu-wien.ac.at';
+
+      return div;
+  };
+
+legend.addTo(map);
+
+L.control.layers({"Geo Tiles": tiles}, {"Countries": countriesOverlay}).addTo(map);
+
+d3.json("datasets/climate-warm.geo.json", function(data) { countries = data.features; countriesOverlay.addTo(map) });
+
+</script>
+
+</body>
+</html>
